@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
     <title>Controversy Meter — See the Full Landscape</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -444,7 +445,7 @@
 
     <script>
         // API Configuration
-        const API_URL = 'https://api.minimax.io/anthropic/v1/messages';
+        const API_URL = '/anthropic/v1/messages';
         const API_KEY = 'sk-cp-Hs97U_92rAhmkzEK7Gptqso3v1oBuvN84uVHJmX80Usl2US-5mEdmJKwO2DsELQfVJFMSsZFtx4htQT3fZQule1WKYZHuQL7Mcfssu1bjof5ElrQ8lvBdxo';
         const MODEL = 'MiniMax-M2.7';
 
@@ -559,10 +560,12 @@ Repeat this format for each position.`;
                 renderCards();
                 renderMap();
                 shareSection.classList.remove('hidden');
+                loadingSection.classList.add('hidden');
 
             } catch (error) {
                 console.error('API Error:', error);
                 showError(error.message);
+                loadingSection.classList.add('hidden');
             } finally {
                 topicInput.disabled = false;
                 analyzeBtn.disabled = false;
