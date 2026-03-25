@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controversy Meter — See the Full Landscape</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#0d1117',
+                        surface: '#161b22',
+                        border: '#30363d',
+                        textPrimary: '#f0f6fc',
+                        textSecondary: '#8b949e',
+                        accent: '#58a6ff',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0d1117;
+            color: #f0f6fc;
+            font-family: 'Inter', system-ui, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #161b22;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+        }
+
+        /* Spectrum gradient */
+        .spectrum-gradient {
+            background: linear-gradient(90deg,
+                #ff6b6b 0%,
+                #ff8e72 14%,
+                #feca57 28%,
+                #48dbfb 42%,
+                #1dd1a1 57%,
+                #5f27cd 71%,
+                #a55eea 85%,
+                #8854d0 100%
+            );
+        }
+
+        /* Spectrum marker */
+        .spectrum-marker {
+            width: 44px;
+            height: 44px;
+            background: #f0f6fc;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #0d1117;
+            box-shadow: 0 0 0 4px rgba(240,246,252,0.2), 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 10;
+        }
+
+        .spectrum-marker::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            background: inherit;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: -1;
+        }
+
+        .spectrum-marker:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            box-shadow: 0 0 0 6px rgba(240,246,252,0.3), 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .spectrum-marker:hover::before {
+            opacity: 0.3;
+        }
+
+        .spectrum-marker.active {
+            transform: translate(-50%, -50%) scale(1.3);
+            box-shadow: 0 0 0 8px rgba(88,166,255,0.4), 0 8px 32px rgba(88,166,255,0.3);
+        }
+
+        .spectrum-marker.loading {
+            animation: markerPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes markerPulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(240,246,252,0.2), 0 4px 12px rgba(0,0,0,0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(240,246,252,0.1), 0 4px 24px rgba(0,0,0,0.6); }
+        }
+
+        .spectrum-marker.animate-in {
+            animation: markerBounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes markerBounceIn {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            60% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* Viewpoint card */
+        .viewpoint-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .viewpoint-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            padding: 1px;
+            background: linear-gradient(135deg, transparent, transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .viewpoint-card:hover::before,
+        .viewpoint-card.active::before {
+            background: linear-gradient(135deg, #58a6ff, #a55eea);
+            opacity: 1;
+        }
+
+        .viewpoint-card.active {
+            max-height: 600px;
+            box-shadow: 0 0 40px rgba(88,166,255,0.15);
+        }
+
+        .viewpoint-card .card-content {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease-out;
+        }
+
+        .viewpoint-card.active .card-content {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .viewpoint-card .expand-indicator {
+            transition: transform 0.3s;
+        }
+
+        .viewpoint-card.active .expand-indicator {
+            transform: rotate(180deg);
+        }
+
+        /* Position badge colors */
+        .position-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #0d1117;
+        }
+
+        /* Stat highlight */
+        .stat-highlight {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(88,166,255,0.1);
+            border: 1px solid rgba(88,166,255,0.3);
+            padding: 4px 12px;
+            border-radius: 6px;
+            color: #58a6ff;
+        }
+
+        /* Loading shimmer */
+        .shimmer {
+            background: linear-gradient(90deg, #161b22 25%, #1f2937 50%, #161b22 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Connection line */
+        .connection-line {
+            stroke: #30363d;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .connection-line.agreement {
+            stroke: #1dd1a1;
+        }
+
+        .connection-line.opposition {
+            stroke: #ff6b6b;
+            stroke-dasharray: 8 4;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1dd1a1;
+            color: #0d1117;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Trending chip */
+        .trending-chip {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid #30363d;
+            background: transparent;
+            color: #8b949e;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .trending-chip:hover {
+            background: #30363d;
+            color: #f0f6fc;
+            border-color: #484f58;
+        }
+
+        /* Spectrum map node */
+        .map-node {
+            transition: all 0.3s;
+        }
+
+        .map-node:hover {
+            filter: brightness(1.3);
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="py-8 px-6 text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-2 tracking-tight">
+                <span class="bg-gradient-to-r from-[#ff6b6b] via-[#feca57] to-[#5f27cd] bg-clip-text text-transparent">
+                    Controversy Meter
+                </span>
+            </h1>
+            <p class="text-[#8b949e] text-lg md:text-xl italic">
+                In a world of binary arguments, see the full landscape.
+            </p>
+        </header>
+
+        <!-- Hero Input Section -->
+        <section class="px-6 py-8 max-w-3xl mx-auto w-full">
+            <div class="relative">
+                <input
+                    type="text"
+                    id="topicInput"
+                    placeholder="Enter any topic to map its controversy..."
+                    class="w-full h-14 px-6 pr-32 text-lg bg-[#161b22] border border-[#30363d] rounded-xl focus:outline-none focus:border-[#58a6ff] focus:ring-2 focus:ring-[#58a6ff]/20 transition-all"
+                >
+                <button
+                    id="analyzeBtn"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 h-10 px-6 bg-[#58a6ff] hover:bg-[#79b8ff] text-[#0d1117] font-semibold rounded-lg transition-all flex items-center gap-2"
+                >
+                    <span>Analyze</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Trending Topics -->
+            <div class="mt-6 flex flex-wrap justify-center gap-2">
+                <button class="trending-chip" data-topic="AI Art">AI Art</button>
+                <button class="trending-chip" data-topic="Crypto Investing">Crypto Investing</button>
+                <button class="trending-chip" data-topic="5:2 Fasting">5:2 Fasting</button>
+                <button class="trending-chip" data-topic="Homesteading">Homesteading</button>
+                <button class="trending-chip" data-topic="Tesla FSD">Tesla FSD</button>
+                <button class="trending-chip" data-topic="Remote Work">Remote Work</button>
+                <button class="trending-chip" data-topic="Nuclear Energy">Nuclear Energy</button>
+                <button class="trending-chip" data-topic="Universal Basic Income">Universal Basic Income</button>
+            </div>
+        </section>
+
+        <!-- Spectrum Visualization -->
+        <section id="spectrumSection" class="px-6 py-12 hidden">
+            <div class="max-w-5xl mx-auto">
+                <!-- Topic Label -->
+                <div class="text-center mb-8">
+                    <span class="text-[#8b949e] text-sm uppercase tracking-wider">Mapping</span>
+                    <h2 id="spectrumTopic" class="text-2xl md:text-3xl font-bold mt-1"></h2>
+                </div>
+
+                <!-- Spectrum Bar -->
+                <div id="spectrumBar" class="relative h-32 mb-4">
+                    <!-- Gradient Track -->
+                    <div class="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-3 rounded-full spectrum-gradient shadow-lg"></div>
+                    <!-- Markers Container -->
+                    <div id="markersContainer" class="absolute inset-0"></div>
+                </div>
+
+                <!-- Spectrum Labels -->
+                <div id="spectrumLabels" class="flex justify-between px-4 text-center"></div>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <section id="loadingSection" class="px-6 py-12 hidden">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center gap-3 text-[#8b949e]">
+                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Analyzing the controversy landscape...</span>
+                    </div>
+                </div>
+                <!-- Shimmer bars -->
+                <div class="space-y-3">
+                    <div class="h-16 rounded-xl shimmer"></div>
+                    <div class="h-16 rounded-xl shimmer" style="animation-delay: 0.1s"></div>
+                    <div class="h-16 rounded-xl shimmer" style="animation-delay: 0.2s"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Viewpoint Cards -->
+        <section id="viewpointSection" class="px-6 py-8 hidden">
+            <div class="max-w-6xl mx-auto">
+                <h3 class="text-xl font-semibold mb-6 text-center">The Full Spectrum</h3>
+                <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </section>
+
+        <!-- Spectrum Map -->
+        <section id="mapSection" class="px-6 py-12 hidden">
+            <div class="max-w-5xl mx-auto">
+                <h3 class="text-xl font-semibold mb-6 text-center">How Positions Connect</h3>
+                <div class="bg-[#161b22] rounded-2xl p-8 border border-[#30363d]">
+                    <svg id="spectrumMap" viewBox="0 0 800 200" class="w-full"></svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- Share Section -->
+        <section id="shareSection" class="px-6 py-8 hidden">
+            <div class="max-w-2xl mx-auto text-center">
+                <button id="shareBtn" class="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#5f27cd] to-[#a55eea] hover:from-[#7c3aed] hover:to-[#c084fc] text-white font-semibold rounded-xl transition-all shadow-lg shadow-purple-900/30">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                    </svg>
+                    <span>Share This Analysis</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Error State -->
+        <section id="errorSection" class="px-6 py-12 hidden">
+            <div class="max-w-2xl mx-auto text-center bg-[#161b22] rounded-2xl p-8 border border-[#ff6b6b]/30">
+                <div class="text-[#ff6b6b] mb-4">
+                    <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Analysis Failed</h3>
+                <p id="errorMessage" class="text-[#8b949e] mb-6">Something went wrong. Please try again.</p>
+                <button id="retryBtn" class="px-6 py-3 bg-[#ff6b6b] hover:bg-[#ff8787] text-white font-semibold rounded-lg transition-all">
+                    Try Again
+                </button>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-auto py-8 text-center text-[#8b949e] text-sm">
+            <p>Built with nuance. Designed for clarity.</p>
+        </footer>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">
+        <span id="toastMessage">Copied to clipboard!</span>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_URL = 'https://api.minimax.io/anthropic/v1/messages';
+        const API_KEY = 'sk-cp-Hs97U_92rAhmkzEK7Gptqso3v1oBuvN84uVHJmX80Usl2US-5mEdmJKwO2DsELQfVJFMSsZFtx4htQT3fZQule1WKYZHuQL7Mcfssu1bjof5ElrQ8lvBdxo';
+        const MODEL = 'MiniMax-M2.7';
+
+        // State
+        let currentTopic = '';
+        let positions = [];
+        let activePosition = null;
+
+        // DOM Elements
+        const topicInput = document.getElementById('topicInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const spectrumSection = document.getElementById('spectrumSection');
+        const loadingSection = document.getElementById('loadingSection');
+        const viewpointSection = document.getElementById('viewpointSection');
+        const mapSection = document.getElementById('mapSection');
+        const shareSection = document.getElementById('shareSection');
+        const errorSection = document.getElementById('errorSection');
+        const spectrumTopic = document.getElementById('spectrumTopic');
+        const markersContainer = document.getElementById('markersContainer');
+        const spectrumLabels = document.getElementById('spectrumLabels');
+        const cardsGrid = document.getElementById('cardsGrid');
+        const shareBtn = document.getElementById('shareBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        // Spectrum colors for positions
+        const spectrumColors = [
+            '#ff6b6b', '#ff8e72', '#feca57', '#ff9f43', '#48dbfb',
+            '#1dd1a1', '#5f27cd', '#a55eea'
+        ];
+
+        // System prompt for the API
+        const SYSTEM_PROMPT = `You are a neutral analyst who maps out the full spectrum of viewpoints on any topic. For the given topic, identify EXACTLY 5-7 distinct positions on the spectrum, from one extreme to the other. For each position provide in exactly this format:
+POSITION_NAME: [name of this viewpoint]
+STRONGEST_ARGUMENT: [the single most compelling argument for this view]
+WHO_HOLDS_THIS: [who typically believes this and why]
+KEY_STAT: [a relevant real statistic or data point if available, or 'No major dataset']
+SIDE_IT_AGREES_WITH: [which adjacent position it most aligns with]
+SIDE_IT_OPPOSES: [which position it most conflicts with]
+---
+Repeat this format for each position.`;
+
+        // Event Listeners
+        topicInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') analyzeTopic();
+        });
+        analyzeBtn.addEventListener('click', analyzeTopic);
+        shareBtn.addEventListener('click', shareAnalysis);
+        retryBtn.addEventListener('click', () => analyzeTopic(currentTopic));
+
+        // Trending chips
+        document.querySelectorAll('.trending-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                topicInput.value = chip.dataset.topic;
+                analyzeTopic(chip.dataset.topic);
+            });
+        });
+
+        // Analyze topic
+        async function analyzeTopic(topicOverride = null) {
+            const topic = topicOverride || topicInput.value.trim();
+            if (!topic) return;
+
+            currentTopic = topic;
+            positions = [];
+            activePosition = null;
+
+            // Update UI
+            hideAllSections();
+            spectrumSection.classList.remove('hidden');
+            spectrumTopic.textContent = topic;
+            loadingSection.classList.remove('hidden');
+
+            // Create loading markers
+            renderLoadingMarkers();
+
+            // Disable input
+            topicInput.disabled = true;
+            analyzeBtn.disabled = true;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': API_KEY,
+                        'anthropic-version': '2023-06-01',
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        max_tokens: 4096,
+                        messages: [
+                            { role: 'user', content: `${SYSTEM_PROMPT}\n\nUser message:\nAnalyze the controversy around: ${topic}` }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const content = data.messages?.[0]?.content || data.content || '';
+
+                parsePositions(content);
+                renderSpectrum();
+                renderCards();
+                renderMap();
+                shareSection.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('API Error:', error);
+                showError(error.message);
+            } finally {
+                topicInput.disabled = false;
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        // Parse positions from API response
+        function parsePositions(content) {
+            const positionBlocks = content.split('---').filter(block => block.trim());
+            positions = [];
+
+            positionBlocks.forEach((block, index) => {
+                const lines = block.trim().split('\n');
+                const position = {};
+
+                lines.forEach(line => {
+                    if (line.startsWith('POSITION_NAME:')) {
+                        position.name = line.replace('POSITION_NAME:', '').trim();
+                    } else if (line.startsWith('STRONGEST_ARGUMENT:')) {
+                        position.argument = line.replace('STRONGEST_ARGUMENT:', '').trim();
+                    } else if (line.startsWith('WHO_HOLDS_THIS:')) {
+                        position.holders = line.replace('WHO_HOLDS_THIS:', '').trim();
+                    } else if (line.startsWith('KEY_STAT:')) {
+                        position.stat = line.replace('KEY_STAT:', '').trim();
+                    } else if (line.startsWith('SIDE_IT_AGREES_WITH:')) {
+                        position.agreesWith = line.replace('SIDE_IT_AGREES_WITH:', '').trim();
+                    } else if (line.startsWith('SIDE_IT_OPPOSES:')) {
+                        position.opposes = line.replace('SIDE_IT_OPPOSES:', '').trim();
+                    }
+                });
+
+                if (position.name) {
+                    position.index = index;
+                    position.color = spectrumColors[index % spectrumColors.length];
+                    positions.push(position);
+                }
+            });
+
+            // Ensure we have positions
+            if (positions.length === 0) {
+                throw new Error('Failed to parse positions from response');
+            }
+        }
+
+        // Render loading markers
+        function renderLoadingMarkers() {
+            markersContainer.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const marker = document.createElement('div');
+                marker.className = 'spectrum-marker loading';
+                marker.style.left = `${15 + (i * 17.5)}%`;
+                marker.style.borderColor = spectrumColors[i];
+                marker.textContent = i + 1;
+                markersContainer.appendChild(marker);
+            }
+            spectrumLabels.innerHTML = '<div class="h-6"></div>';
+        }
+
+        // Render spectrum visualization
+        function renderSpectrum() {
+            markersContainer.innerHTML = '';
+            spectrumLabels.innerHTML = '';
+
+            const count = positions.length;
+            const spacing = 100 / (count - 1 || 1);
+
+            positions.forEach((pos, i) => {
+                const leftPercent = i === 0 ? 5 : (i === count - 1 ? 95 : 5 + (i * spacing * 0.9));
+
+                const marker = document.createElement('div');
+                marker.className = 'spectrum-marker';
+                marker.style.left = `${leftPercent}%`;
+                marker.style.borderColor = pos.color;
+                marker.style.animationDelay = `${i * 150}ms`;
+                marker.innerHTML = `<span>${i + 1}</span>`;
+                marker.title = pos.name;
+                marker.dataset.index = i;
+
+                marker.addEventListener('click', () => selectPosition(i));
+                marker.addEventListener('mouseenter', () => {
+                    if (activePosition !== i) {
+                        marker.style.transform = 'translate(-50%, -50%) scale(1.15)';
+                    }
+                });
+                marker.addEventListener('mouseleave', () => {
+                    if (activePosition !== i) {
+                        marker.style.transform = 'translate(-50%, -50%) scale(1)';
+                    }
+                });
+
+                markersContainer.appendChild(marker);
+
+                // Animate in
+                setTimeout(() => {
+                    marker.classList.add('animate-in');
+                    setTimeout(() => marker.classList.remove('animate-in'), 600);
+                }, i * 150);
+
+                // Label
+                const label = document.createElement('div');
+                label.className = 'text-center';
+                label.style.width = '80px';
+                label.style.marginLeft = `${leftPercent}%`;
+                label.style.transform = 'translateX(-50%)';
+                label.innerHTML = `
+                    <div class="text-xs font-medium text-[#8b949e] truncate max-w-[80px]">${pos.name}</div>
+                `;
+                spectrumLabels.appendChild(label);
+            });
+        }
+
+        // Render viewpoint cards
+        function renderCards() {
+            cardsGrid.innerHTML = '';
+            viewpointSection.classList.remove('hidden');
+
+            positions.forEach((pos, i) => {
+                const card = document.createElement('div');
+                card.className = 'viewpoint-card';
+                card.dataset.index = i;
+
+                card.innerHTML = `
+                    <div class="flex items-start gap-4">
+                        <div class="position-badge flex-shrink-0" style="background: ${pos.color}">${i + 1}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-bold text-lg">${pos.name}</h4>
+                                <svg class="w-5 h-5 expand-indicator text-[#8b949e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                            <div class="card-content">
+                                <p class="italic text-[#8b949e] mt-3 mb-4 border-l-2 pl-4 border-[${pos.color}]">"${pos.argument}"</p>
+                                <div class="space-y-3 text-sm">
+                                    <div>
+                                        <span class="text-[#8b949e]">Who holds this:</span>
+                                        <p class="text-[#f0f6fc] mt-1">${pos.holders}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-[#8b949e]">Key data:</span>
+                                        <div class="mt-1"><span class="stat-highlight">${pos.stat}</span></div>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 pt-2">
+                                        <span class="text-xs px-2 py-1 rounded bg-[#1dd1a1]/20 text-[#1dd1a1]">Agrees: ${pos.agreesWith}</span>
+                                        <span class="text-xs px-2 py-1 rounded bg-[#ff6b6b]/20 text-[#ff6b6b]">Opposes: ${pos.opposes}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => toggleCard(i));
+                cardsGrid.appendChild(card);
+
+                // Staggered animation
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, i * 100);
+            });
+        }
+
+        // Toggle card expansion
+        function toggleCard(index) {
+            const card = cardsGrid.children[index];
+            const wasActive = card.classList.contains('active');
+
+            // Close all
+            Array.from(cardsGrid.children).forEach(c => {
+                c.classList.remove('active');
+                c.style.maxHeight = '100px';
+            });
+
+            // Toggle this one
+            if (!wasActive) {
+                card.classList.add('active');
+                card.style.maxHeight = '600px';
+
+                // Scroll into view
+                setTimeout(() => {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+
+                selectPosition(index);
+            } else {
+                activePosition = null;
+                updateMarkerStates();
+            }
+        }
+
+        // Select a position (from spectrum marker)
+        function selectPosition(index) {
+            activePosition = index;
+
+            // Update markers
+            updateMarkerStates();
+
+            // Expand corresponding card
+            const card = cardsGrid.children[index];
+            if (card && !card.classList.contains('active')) {
+                Array.from(cardsGrid.children).forEach(c => {
+                    c.classList.remove('active');
+                    c.style.maxHeight = '100px';
+                });
+                card.classList.add('active');
+                card.style.maxHeight = '600px';
+                setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+            }
+        }
+
+        // Update marker active states
+        function updateMarkerStates() {
+            const markers = markersContainer.querySelectorAll('.spectrum-marker');
+            markers.forEach((marker, i) => {
+                marker.classList.toggle('active', activePosition === i);
+                if (activePosition === i) {
+                    marker.style.transform = 'translate(-50%, -50%) scale(1.3)';
+                } else {
+                    marker.style.transform = 'translate(-50%, -50%) scale(1)';
+                }
+            });
+        }
+
+        // Render spectrum map
+        function renderMap() {
+            mapSection.classList.remove('hidden');
+            const svg = document.getElementById('spectrumMap');
+            svg.innerHTML = '';
+
+            const width = 800;
+            const height = 200;
+            const nodeRadius = 28;
+            const count = positions.length;
+            const spacing = (width - 100) / (count - 1 || 1);
+
+            // Create agreement lines first (behind)
+            positions.forEach((pos, i) => {
+                if (pos.agreesWith && pos.agreesWith !== 'None') {
+                    const targetIndex = positions.findIndex(p =>
+                        p.name.toLowerCase().includes(pos.agreesWith.toLowerCase().split(' ')[0])
+                    );
+                    if (targetIndex !== -1 && targetIndex !== i) {
+                        const x1 = 50 + i * spacing;
+                        const x2 = 50 + targetIndex * spacing;
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x1);
+                        line.setAttribute('y1', height / 2);
+                        line.setAttribute('x2', x2);
+                        line.setAttribute('y2', height / 2);
+                        line.setAttribute('class', 'connection-line agreement');
+                        line.setAttribute('stroke-width', '3');
+                        svg.appendChild(line);
+                    }
+                }
+            });
+
+            // Create opposition lines (dashed, on top)
+            positions.forEach((pos, i) => {
+                if (pos.opposes && pos.opposes !== 'None') {
+                    const targetIndex = positions.findIndex(p =>
+                        p.name.toLowerCase().includes(pos.opposes.toLowerCase().split(' ')[0])
+                    );
+                    if (targetIndex !== -1 && targetIndex !== i) {
+                        const x1 = 50 + i * spacing;
+                        const x2 = 50 + targetIndex * spacing;
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x1);
+                        line.setAttribute('y1', height / 2);
+                        line.setAttribute('x2', x2);
+                        line.setAttribute('y2', height / 2);
+                        line.setAttribute('class', 'connection-line opposition');
+                        line.setAttribute('stroke-width', '2');
+                        svg.appendChild(line);
+                    }
+                }
+            });
+
+            // Create nodes
+            positions.forEach((pos, i) => {
+                const cx = 50 + i * spacing;
+                const cy = height / 2;
+
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.setAttribute('class', 'map-node');
+                group.style.cursor = 'pointer';
+
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', cx);
+                circle.setAttribute('cy', cy);
+                circle.setAttribute('r', nodeRadius);
+                circle.setAttribute('fill', pos.color);
+                circle.setAttribute('stroke', '#f0f6fc');
+                circle.setAttribute('stroke-width', '2');
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', cx);
+                text.setAttribute('y', cy + 5);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', '#0d1117');
+                text.setAttribute('font-weight', '700');
+                text.setAttribute('font-size', '14');
+                text.textContent = i + 1;
+
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', cx);
+                label.setAttribute('y', cy + nodeRadius + 20);
+                label.setAttribute('text-anchor', 'middle');
+                label.setAttribute('fill', '#8b949e');
+                label.setAttribute('font-size', '11');
+                label.textContent = pos.name.length > 15 ? pos.name.substring(0, 15) + '...' : pos.name;
+
+                group.appendChild(circle);
+                group.appendChild(text);
+                group.appendChild(label);
+
+                group.addEventListener('click', () => selectPosition(i));
+                svg.appendChild(group);
+            });
+
+            // Legend
+            const legend = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            legend.setAttribute('transform', `translate(${width - 150}, 20)`);
+
+            const solidLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            solidLine.setAttribute('x1', 0);
+            solidLine.setAttribute('y1', 0);
+            solidLine.setAttribute('x2', 30);
+            solidLine.setAttribute('y2', 0);
+            solidLine.setAttribute('stroke', '#1dd1a1');
+            solidLine.setAttribute('stroke-width', '3');
+
+            const solidText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            solidText.setAttribute('x', 40);
+            solidText.setAttribute('y', 4);
+            solidText.setAttribute('fill', '#8b949e');
+            solidText.setAttribute('font-size', '11');
+            solidText.textContent = 'Agrees';
+
+            const dashLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            dashLine.setAttribute('x1', 0);
+            dashLine.setAttribute('y1', 25);
+            dashLine.setAttribute('x2', 30);
+            dashLine.setAttribute('y2', 25);
+            dashLine.setAttribute('stroke', '#ff6b6b');
+            dashLine.setAttribute('stroke-width', '2');
+            dashLine.setAttribute('stroke-dasharray', '6 3');
+
+            const dashText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            dashText.setAttribute('x', 40);
+            dashText.setAttribute('y', 29);
+            dashText.setAttribute('fill', '#8b949e');
+            dashText.setAttribute('font-size', '11');
+            dashText.textContent = 'Opposes';
+
+            legend.appendChild(solidLine);
+            legend.appendChild(solidText);
+            legend.appendChild(dashLine);
+            legend.appendChild(dashText);
+            svg.appendChild(legend);
+        }
+
+        // Share analysis
+        function shareAnalysis() {
+            if (!positions.length) return;
+
+            const summary = `${currentTopic} - Controversy Meter Analysis\n\n` +
+                positions.map((p, i) =>
+                    `${i + 1}. ${p.name}: "${p.argument}" (${p.stat})`
+                ).join('\n\n') +
+                `\n\nSee the full spectrum: ${window.location.href}`;
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(summary).then(() => {
+                showToast('Analysis copied to clipboard!');
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = summary;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('Analysis copied to clipboard!');
+            });
+
+            // Update URL
+            const url = new URL(window.location.href);
+            url.searchParams.set('topic', encodeURIComponent(currentTopic));
+            window.history.replaceState({}, '', url);
+        }
+
+        // Show toast
+        function showToast(message) {
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Show error
+        function showError(message) {
+            hideAllSections();
+            errorSection.classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = `Something went wrong: ${message}`;
+        }
+
+        // Hide all sections
+        function hideAllSections() {
+            spectrumSection.classList.add('hidden');
+            loadingSection.classList.add('hidden');
+            viewpointSection.classList.add('hidden');
+            mapSection.classList.add('hidden');
+            shareSection.classList.add('hidden');
+            errorSection.classList.add('hidden');
+        }
+
+        // Check for topic in URL on load
+        const urlParams = new URLSearchParams(window.location.search);
+        const topicFromUrl = urlParams.get('topic');
+        if (topicFromUrl) {
+            topicInput.value = decodeURIComponent(topicFromUrl);
+            analyzeTopic(topicFromUrl);
+        }
+    </script>
+</body>
+</html>
